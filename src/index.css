@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 1. Global Base Styles */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Prevent standard scroll bounce on mobile */
+  overscroll-behavior-y: none;
+}
+
+body {
+  /* Set the dark theme globally so there are no white flashes on load */
+  @apply bg-slate-900 text-white antialiased;
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* 2. Custom Animations (For Paywall & Interactions) */
+@layer utilities {
+  
+  /* Animation: Fade in the dark overlay */
+  @keyframes overlayFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Animation: Slide up + Scale up the Modal */
+  @keyframes modalPopUp {
+    0% {
+      opacity: 0;
+      transform: scale(0.95) translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /* Utility classes to use in your React components */
+  .animate-overlay-in {
+    animation: overlayFadeIn 0.3s ease-out forwards;
+  }
+
+  .animate-modal-in {
+    /* Uses a cubic-bezier for a "snappy" premium feel */
+    animation: modalPopUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 0.1s; /* Wait for overlay to start first */
+    opacity: 0; /* Start invisible */
+  }
+}
