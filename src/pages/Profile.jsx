@@ -1,15 +1,32 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { User, LogOut, CreditCard, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import api from '../api/axios';
+import PaywallModal from '../components/PaywallModal'; // Import Modal
 
 const Profile = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleSubscribe = async (currency, interval) => {
+    try {
+      const res = await api.post('/payment/initialize', {
+        email: user.email,
+        currency,
+        interval
+      });
+      window.location.href = res.data.url;
+    } catch (err) {
+      console.error("Payment Error:", err);
+      alert("Could not start payment.");
+    }
   };
 
   if (!user) return null;
@@ -25,11 +42,10 @@ const Profile = () => {
         </div>
         <div>
           <h2 className="text-xl font-bold">{user.name}</h2>
-          <p className="text-sm text-green-500">{user.personalityType}</p>
+          <p className="text-sm text-gray-400">{user.email}</p>
         </div>
       </div>
 
-      {/* Settings List */}
       <div className="space-y-3">
         
         {/* Subscription Status */}
@@ -44,7 +60,12 @@ const Profile = () => {
           {user.isPremium ? (
              <span className="bg-green-500/20 text-green-500 text-xs px-2 py-1 rounded">Active</span>
           ) : (
-             <button className="bg-green-500 text-white text-xs px-3 py-1 rounded">Upgrade</button>
+             <button 
+               onClick={() => setShowPaywall(true)} // Open Modal
+               className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded transition"
+             >
+               Upgrade
+             </button>
           )}
         </div>
 
@@ -66,6 +87,14 @@ const Profile = () => {
           <span className="font-bold">Log Out</span>
         </button>
       </div>
+
+      {/* Paywall Modal */}
+      {showPaywall && (
+        <PaywallModal 
+          onClose={() => setShowPaywall(false)} 
+          onSubscribe={handleSubscribe} 
+        />
+      )}
     </div>
   );
 };

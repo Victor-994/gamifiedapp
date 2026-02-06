@@ -6,41 +6,41 @@ const PaywallModal = ({ onClose, onSubscribe }) => {
   const [loading, setLoading] = useState(true);
   const [interval, setInterval] = useState('month'); // 'month' or 'year'
 
-  // Pricing Configuration
+  // 1. PRICING CONFIGURATION (NGN & USD)
   const pricing = {
     ngn: { 
       symbol: '₦', 
-      month: '1,500', 
+      month: '100', 
       year: '10,000', 
       save: 'Save ₦8,000/year',
       desc: 'Billed monthly'
     },
-    cad: { 
+    // International users see USD
+    usd: { 
       symbol: '$', 
       month: '3.99', 
       year: '30.00', 
       save: 'Save $17.88/year', 
-      desc: 'Billed monthly'
+      desc: 'Billed monthly in USD'
     }
   };
 
-  // 1. Detect User Location on Load
+  // 2. DETECT LOCATION
   useEffect(() => {
     const detectLocation = async () => {
       try {
-        // Fetch location data
         const res = await fetch('https://ipapi.co/json/');
         const data = await res.json();
         
-        // Logic: If Nigeria -> NGN. Everyone else -> CAD
+        // If Nigeria -> NGN. Everyone else -> USD
         if (data.country_code === 'NG') {
           setCurrency('ngn');
         } else {
-          setCurrency('cad');
+          setCurrency('usd'); 
         }
       } catch (err) {
         console.error("Location detection failed, defaulting to Nigeria:", err);
-        setCurrency('ngn'); // Safe fallback
+        setCurrency('ngn');
       } finally {
         setLoading(false);
       }
@@ -50,11 +50,10 @@ const PaywallModal = ({ onClose, onSubscribe }) => {
   }, []);
 
   const handleCheckout = () => {
-    // Send the detected currency and selected interval to the dashboard
+    // Send selected currency & interval to parent
     onSubscribe(currency, interval);
   };
 
-  // 2. Loading State (Prevents showing wrong price for a split second)
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
@@ -72,12 +71,10 @@ const PaywallModal = ({ onClose, onSubscribe }) => {
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-slate-900 p-6 rounded-3xl max-w-md w-full border border-slate-700 relative shadow-2xl">
         
-        {/* Close Button */}
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
           <X size={24} />
         </button>
 
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="bg-green-500/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/20">
             <Lock className="text-green-500 w-8 h-8" />
@@ -88,10 +85,20 @@ const PaywallModal = ({ onClose, onSubscribe }) => {
           </p>
         </div>
 
+        <div className="text-center mb-8">
+          <div className="bg-green-500/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/20">
+            <Lock className="text-green-500 w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Unlock Full Access</h2>
+          <p className="text-gray-400 text-sm px-4">
+            Free plan: 1 Question / day <br/>
+            <span className="text-green-400 font-bold">Premium: 5 Questions / day</span> + Stats
+          </p>
+        </div>
+
         {/* Plan Cards */}
         <div className="grid grid-cols-2 gap-4 mb-8">
-          
-          {/* Monthly Option */}
+          {/* Monthly */}
           <div 
             onClick={() => setInterval('month')}
             className={`cursor-pointer p-4 rounded-xl border-2 transition-all relative ${
@@ -110,7 +117,7 @@ const PaywallModal = ({ onClose, onSubscribe }) => {
             <div className="text-[10px] text-gray-400">/mo</div>
           </div>
 
-          {/* Yearly Option */}
+          {/* Yearly */}
           <div 
             onClick={() => setInterval('year')}
             className={`cursor-pointer p-4 rounded-xl border-2 transition-all relative ${
@@ -133,7 +140,6 @@ const PaywallModal = ({ onClose, onSubscribe }) => {
           </div>
         </div>
 
-        {/* Secure Checkout Button */}
         <button 
           onClick={handleCheckout}
           className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 group"
@@ -143,7 +149,7 @@ const PaywallModal = ({ onClose, onSubscribe }) => {
         </button>
         
         <p className="text-center mt-4 text-[10px] text-gray-500 flex items-center justify-center gap-1">
-          <Lock size={10} /> Secured by Stripe. Cancel anytime.
+          <Lock size={10} /> Secured by Paystack. Cancel anytime.
         </p>
       </div>
     </div>

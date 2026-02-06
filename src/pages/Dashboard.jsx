@@ -1,22 +1,51 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Trophy, Star, CheckCircle, Flame } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
-import api from '../api/axios'; // <--- ✅ CHANGED: Importing your secure instance
-import PaywallModal from '../components/PaywallModal'; // Ensure you have this component
+import api from '../api/axios'; 
+import PaywallModal from '../components/PaywallModal'; 
 
 const Dashboard = () => {
-  const { user } = useContext(AuthContext);
+  const { user, refreshUser } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showPaywall, setShowPaywall] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+
+  // 1. VERIFY PAYMENT ON LOAD (If returning from Paystack)
+  useEffect(() => {
+    const checkPayment = async () => {
+      const reference = searchParams.get('reference');
+      if (reference) {
+        setVerifying(true);
+        try {
+          // Verify with Backend
+          await api.get(`/payment/verify/${reference}`);
+          await refreshUser(); // Update UI to show Premium
+          alert("Payment Successful! Welcome to Premium.");
+          setSearchParams({}); // Clear URL
+        } catch (err) {
+          console.error("Verification failed", err);
+          alert("Payment verification failed.");
+        } finally {
+          setVerifying(false);
+        }
+      }
+    };
+    checkPayment();
+  }, [searchParams, refreshUser, setSearchParams]);
+
+  // 2. CALCULATE LIMITS
+  // Check if user account is less than 24 hours old
+  // Note: user.createdAt must exist in your User model. If it's missing, it defaults to Date.now()
+  const isNewUser = user && (new Date() - new Date(user.createdAt || Date.now())) < 86400000;
+  
+  // Limit is 5 for Premium OR New Users, otherwise 1
+  const dailyLimit = user?.isPremium || isNewUser ? 5 : 1;
 
   const startChallenge = async () => {
     try {
-      // ✅ CHANGED: specific URL removed because api.js has baseURL
-      // This now automatically sends the "Authorization: Bearer <token>" header
       const res = await api.get('/quiz/questions');
-      
       navigate('/quiz', { state: { questions: res.data } });
     } catch (err) {
       if (err.response && err.response.data.code === 'LIMIT_REACHED') {
@@ -27,23 +56,23 @@ const Dashboard = () => {
     }
   };
 
-  const handleSubscribe = async () => {
+  // 3. PAYSTACK HANDLER
+  const handleSubscribe = async (currency, interval) => {
     try {
-      // ⚠️ Replace with your actual Stripe PUBLIC key
-      const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY); 
-      
-      const res = await api.post('/payment/create-checkout-session', {
-        userId: user._id,
-        email: user.email
+      const res = await api.post('/payment/initialize', {
+        email: user.email,
+        currency,
+        interval
       });
-
-      await stripe.redirectToCheckout({ sessionId: res.data.id });
+      // Redirect to Paystack
+      window.location.href = res.data.url;
     } catch (err) {
-      console.error("Payment Error:", err);
+      console.error("Payment Init Error:", err);
+      alert("Could not start payment.");
     }
   };
 
-  if (!user) return <div className="p-10 text-center text-white">Loading User Data...</div>;
+  if (!user || verifying) return <div className="p-10 text-center text-white">Loading...</div>;
 
   return (
     <div className="min-h-screen bg-slate-900 text-white p-4 pb-20 font-sans">
@@ -52,7 +81,9 @@ const Dashboard = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-xl font-bold">Hello, {user.name}</h1>
-          <p className="text-sm text-green-500">Let's learn something new!</p>
+          <p className="text-sm text-green-500">
+             {user.isPremium ? "Premium Member 🌟" : "Free Plan"}
+          </p>
         </div>
         <div className="bg-slate-800 p-2 rounded-full border border-slate-700">
            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center font-bold text-white">
@@ -61,13 +92,18 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Start Button */}
+      {/* Start Button (Updated with Limit Logic) */}
       <div className="bg-gradient-to-r from-slate-800 to-slate-800 p-1 rounded-xl mb-8 shadow-lg">
         <button 
           onClick={startChallenge}
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2"
+          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-lg transition flex flex-col items-center justify-center gap-1"
         >
-          <Flame /> Start Today's Challenge
+          <div className="flex items-center gap-2">
+            <Flame /> Start Today's Challenge
+          </div>
+          <span className="text-[10px] text-green-100 font-normal opacity-80">
+            {user.dailyQuestionsCount} / {dailyLimit} Questions Completed
+          </span>
         </button>
       </div>
 
