@@ -15,6 +15,7 @@ import Dashboard from './pages/Dashboard';
 import QuizFlow from './pages/QuizFlow';
 import Progress from './pages/Progress';
 import Profile from './pages/Profile';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -102,6 +103,15 @@ function App() {
                 <ProtectedRoute>
                   <Profile />
                   <BottomNav />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute>
+                  <AdminDashboard />
                 </ProtectedRoute>
               } 
             />

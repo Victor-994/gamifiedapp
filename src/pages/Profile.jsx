@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { User, LogOut, CreditCard, Shield } from 'lucide-react';
+import { User, LogOut, CreditCard, Shield, LayoutDashboard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import PaywallModal from '../components/PaywallModal'; // Import Modal
@@ -77,6 +77,17 @@ const Profile = () => {
               <p className="text-xs text-gray-400">Level {user.level} ({user.xp} Total XP)</p>
            </div>
         </div>
+
+        {/* ADMIN BUTTON */}
+        {user.isAdmin && (
+          <button 
+            onClick={() => navigate('/admin')}
+            className="w-full bg-slate-800 p-4 rounded-xl border border-green-500/50 flex items-center text-green-500 hover:bg-slate-750 transition mt-4"
+          >
+            <LayoutDashboard className="mr-3" size={20} />
+            <span className="font-bold">Access Admin Dashboard</span>
+          </button>
+        )}
 
         {/* Logout */}
         <button 
